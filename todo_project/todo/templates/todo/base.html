@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
-</head>
-<body>
     {% if user.is_authenticated %}
         <p>Logged In as {{ user.username }}</p>
+        <a href="{% url 'createtodo' %}">Create</a>
+        <a href="{% url 'currenttodos' %}">Current</a>
+        <a href="{% url 'completedtodos' %}">Completed</a>
+        
         <form action="{% url 'logoutuser' %}" method="POST">
             {% csrf_token %}
         <button type="submit">Logout</button>
@@ -19,5 +15,3 @@
 
     {% block content %}
     {% endblock %}
-</body>
-</html>
