@@ -1,7 +1,7 @@
 {% extends 'todo/base.html' %}
 
 {% block content %}
-    {{ todo.title }}
+    <p>{{ todo.title }}</p>
     {{ error }}
     <form method="POST">
         {% csrf_token %}

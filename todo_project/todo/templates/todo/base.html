@@ -1,5 +1,6 @@
     {% if user.is_authenticated %}
         <p>Logged In as {{ user.username }}</p>
+        <a href="{% url 'profile' %}">Profile</a>
         <a href="{% url 'createtodo' %}">Create</a>
         <a href="{% url 'currenttodos' %}">Current</a>
         <a href="{% url 'completedtodos' %}">Completed</a>

@@ -2,102 +2,128 @@ from django.shortcuts import render, redirect, get_object_or_404
 
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
 
 from django.utils import timezone
 
-from django.db import IntegrityError
+from django.views.generic import TemplateView, ListView, UpdateView, CreateView, DeleteView
+from django.views import View
 
-from .forms import TodoForm
+from django.urls import reverse, reverse_lazy
+
+from .forms import TodoForm, UserForm, ProfileForm
 
 from .models import Todo
 
 # Create your views here.
-def home(request):
-    return render(request, 'todo/home.html')
+class HomeView(TemplateView):
+    template_name = 'todo/home.html'
 
-def signupuser(request):
-    if request.method == 'GET':
+# Authentication
+class SignUpView(View):
+    def get(self, request):
         return render(request, 'todo/signupuser.html', {'form': UserCreationForm()})
-    else:
-        if request.POST['password1'] == request.POST['password2']:
-            try:
-                user = User.objects.create_user(request.POST['username'], password=request.POST['password1'])
-                user.save()
-                login(request, user)
-                return redirect('currenttodos')
-            except IntegrityError:
-                return render(request, 'todo/signupuser.html', {'form': UserCreationForm(), 'error': 'Username has already been taken'})    
-        else:
-            return render(request, 'todo/signupuser.html', {'form': UserCreationForm(), 'error': 'Passwords did not match'})
 
-def loginuser(request):
-    if request.method == 'GET':
+    def post(self, request):
+        userCreationForm = UserCreationForm(request.POST)
+        if userCreationForm.is_valid():
+            user = User.objects.create_user(request.POST['username'], password=request.POST['password1'])
+            user.save()
+            login(request, user)
+            return redirect('home')
+        else:
+            return render(request, 'todo/signupuser.html', {'form': UserCreationForm(), 'error': 'Form data not valid. Try again'})
+
+
+class LoginUserView(View):
+    def get(self, request):
         return render(request, 'todo/loginuser.html', {'form': AuthenticationForm()})
-    else:
+
+    def post(self, request):
         user = authenticate(request, username=request.POST['username'], password=request.POST['password'])
         if user is None:
             return render(request, 'todo/loginuser.html', {'form': AuthenticationForm(), 'error': 'Username or password incorrect'})
         else:
             login(request, user)
-            return redirect('currenttodos')
+            return redirect('home')
 
-@login_required
-def logoutuser(request):
-    if request.method == 'POST':
+
+class LogoutUserView(LoginRequiredMixin, View):
+    def post(self, request):
         logout(request)
         return redirect('home')
 
-@login_required
-def createtodo(request):
-    if request.method == 'GET':
-        return render(request, 'todo/createtodo.html', {'form': TodoForm()})
-    else:
-        try:
-            form = TodoForm(request.POST)
-            newtodo = form.save(commit=False)
-            newtodo.owner = request.user
-            newtodo.save()
-            return redirect('currenttodos')
-        except ValueError:
-            return render(request, 'todo/createtodo.html', {'form': TodoForm(), 'error': 'Bad input'})
 
-@login_required
-def currenttodos(request):
-    todos = Todo.objects.filter(owner=request.user, completion_date_time__isnull=True)
-    return render(request, 'todo/currenttodos.html', {'todos': todos})
+class ProfileView(LoginRequiredMixin, View):
+    def get(self, request):
+        user_form = UserForm(instance=request.user)
+        profile_form = ProfileForm(instance=request.user.profile)
+        return render(request, 'todo/profile.html', {'user_form': user_form, 'profile_form': profile_form})
 
-@login_required
-def completedtodos(request):
-    todos = Todo.objects.filter(owner=request.user, completion_date_time__isnull=False).order_by('-completion_date_time')
-    return render(request, 'todo/completedtodos.html', {'todos': todos})
+    def post(self, request):
+        user_form = UserForm(request.POST, instance=request.user)
+        profile_form = ProfileForm(request.POST, instance=request.user.profile)
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            return render(request, 'todo/profile.html', {'user_form': user_form, 'profile_form': profile_form})
+        else:
+            return render(request, 'todo/profile.html', {'user_form': user_form, 'profile_form': profile_form, 'error': 'invalid form data'})
 
-@login_required
-def viewtodo(request, todo_pk):
-    todo = get_object_or_404(Todo, pk=todo_pk, owner=request.user)
-    if request.method == 'GET':
-        form = TodoForm(instance=todo)
-        return render(request, 'todo/viewtodo.html', {'todo': todo, 'form': form})
-    else:
-        try:
-            form = TodoForm(request.POST, instance=todo)
-            form.save()
-            return redirect('currenttodos')
-        except ValueError:
-            return render(request, 'todo/viewtodo.html', {'todo': todo, 'error': 'Bad input'})
 
-@login_required
-def completetodo(request, todo_pk):
-    todo = get_object_or_404(Todo, pk=todo_pk, owner=request.user)
-    if request.method == 'POST':
+# Todos
+class CreateTodoView(LoginRequiredMixin, CreateView):
+    model = Todo
+    template_name = 'todo/createtodo.html'
+    fields = ['title', 'description', 'important']
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse('currenttodos')
+
+
+class CurrentTodosView(LoginRequiredMixin, ListView):
+    context_object_name = 'todos'
+    template_name = 'todo/currenttodos.html'
+
+    def get_queryset(self):
+        return Todo.objects.filter(owner=self.request.user, completion_date_time__isnull=True) 
+
+
+class CompletedTodosView(LoginRequiredMixin, ListView):
+    context_object_name = 'todos'
+    template_name = 'todo/completedtodos.html'
+
+    def get_queryset(self):
+        return Todo.objects.filter(owner=self.request.user, completion_date_time__isnull=False)
+
+
+class TodoView(LoginRequiredMixin, UpdateView):
+    model = Todo
+    template_name = 'todo/viewtodo.html'
+    fields = ['title', 'description', 'completion_date_time', 'important']
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+
+    def get_success_url(self):
+        return reverse('currenttodos')
+
+
+class CompleteTodoView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        todo = get_object_or_404(Todo, pk=pk, owner=request.user)
         todo.completion_date_time = timezone.now()
         todo.save()
         return redirect('currenttodos')
 
-@login_required
-def deletetodo(request, todo_pk):
-    todo = get_object_or_404(Todo, pk=todo_pk, owner=request.user)
-    if request.method == 'POST':
-        todo.delete()
-        return redirect('currenttodos')
+
+class DeleteTodoView(LoginRequiredMixin, DeleteView):
+    model = Todo
+    success_url = reverse_lazy('currenttodos')
+

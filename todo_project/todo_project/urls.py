@@ -14,23 +14,23 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+
 from todo import views
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+
+    # Home
+    path('', views.HomeView.as_view(), name='home'),
     
     # Authentication
-    path('signup/', views.signupuser, name='signupuser'),
-    path('logout/', views.logoutuser, name='logoutuser'),
-    path('login/', views.loginuser, name='loginuser'),
+    path('signup/', views.SignUpView.as_view(), name='signupuser'),
+    path('logout/', views.LogoutUserView.as_view(), name='logoutuser'),
+    path('login/', views.LoginUserView.as_view(), name='loginuser'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
     
     # Todos
-    path('', views.home, name='home'),
-    path('create/', views.createtodo, name='createtodo'),
-    path('current/', views.currenttodos, name='currenttodos'),
-    path('completed/', views.completedtodos, name='completedtodos'),
-    path('todo/<int:todo_pk>', views.viewtodo, name='viewtodo'),
-    path('todo/<int:todo_pk>/complete', views.completetodo, name='completetodo'),
-    path('todo/<int:todo_pk>/delete', views.deletetodo, name='deletetodo'),
+    path('todo/', include('todo.urls')),
 ]
