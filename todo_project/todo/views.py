@@ -18,6 +18,7 @@ from django.http import HttpResponse, JsonResponse, Http404
 from rest_framework import status, generics, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authentication import BasicAuthentication, TokenAuthentication
 
 from .forms import TodoForm, UserForm, ProfileForm
 
@@ -144,6 +145,7 @@ class TodoList(generics.ListCreateAPIView):
     List all todos, or create new
     """
     serializer_class = TodoSerializer
+    authentication_classes = [BasicAuthentication, TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def get_queryset(self, *args, **kwargs):

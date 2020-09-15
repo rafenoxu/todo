@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from rest_framework.urlpatterns import format_suffix_patterns
+from rest_framework.authtoken.views import obtain_auth_token
 
 from todo import views
 
@@ -43,4 +44,5 @@ urlpatterns = format_suffix_patterns(urlpatterns)
 
 urlpatterns += [
     path('api-auth/', include('rest_framework.urls')),
+    path('api-token-auth/', obtain_auth_token),
 ]
