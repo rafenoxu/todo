@@ -14,7 +14,7 @@ class Todo(models.Model):
     creation_date_time = models.DateTimeField(auto_now_add=True)
     completion_date_time = models.DateTimeField(null=True, blank=True)
     important = models.BooleanField(default=False)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    owner = models.ForeignKey(User, related_name='todos', on_delete=models.CASCADE)
 
     # To see it in admin as title
     def __str__(self):

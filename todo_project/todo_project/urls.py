@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from rest_framework.urlpatterns import format_suffix_patterns
 
 from todo import views
 
@@ -33,4 +34,13 @@ urlpatterns = [
     
     # Todos
     path('todo/', include('todo.urls')),
+
+    # API
+    path('api/todos/', views.TodoList.as_view(), name='todolist'),
+]
+
+urlpatterns = format_suffix_patterns(urlpatterns)
+
+urlpatterns += [
+    path('api-auth/', include('rest_framework.urls')),
 ]

@@ -9,12 +9,23 @@ from django.utils import timezone
 
 from django.views.generic import TemplateView, ListView, UpdateView, CreateView, DeleteView
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 
 from django.urls import reverse, reverse_lazy
+
+from django.http import HttpResponse, JsonResponse, Http404
+
+from rest_framework import status, generics, permissions
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .forms import TodoForm, UserForm, ProfileForm
 
 from .models import Todo
+
+from .serializers import TodoSerializer
+
+from .permissions import IsOwner
 
 # Create your views here.
 class HomeView(TemplateView):
@@ -127,3 +138,17 @@ class DeleteTodoView(LoginRequiredMixin, DeleteView):
     model = Todo
     success_url = reverse_lazy('currenttodos')
 
+# API
+class TodoList(generics.ListCreateAPIView):
+    """
+    List all todos, or create new
+    """
+    serializer_class = TodoSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwner]
+
+    def get_queryset(self, *args, **kwargs):
+        user = self.request.user
+        return Todo.objects.filter(owner=user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
