@@ -117,7 +117,7 @@ class CompletedTodosView(LoginRequiredMixin, ListView):
 class TodoView(LoginRequiredMixin, UpdateView):
     model = Todo
     template_name = 'todo/viewtodo.html'
-    fields = ['title', 'description', 'completion_date_time', 'important']
+    fields = ['title', 'description', 'completion_date_time', 'important', 'comment']
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
